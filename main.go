@@ -4,8 +4,8 @@ import "github.com/labstack/echo/v4"
 
 func main() {
 
-	e := echo.New()
+	server := echo.New()
 
-	e.Start("localhost:8080")
+	server.Start("localhost:8080")
 
 }

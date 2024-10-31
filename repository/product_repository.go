@@ -15,6 +15,10 @@ type ProductRepository struct {
 	dbPool *pgxpool.Pool
 }
 
+func NewProductRepository(dbPool *pgxpool.Pool) IProductRepository {
+	return &ProductRepository{dbPool: dbPool}
+}
+
 func (productRepository *ProductRepository) GetAllProducts() []domain.Product {
 	ctx := context.Background()
 	productRows, err := productRepository.dbPool.Query(ctx, "SELECT * FROM products")
@@ -30,9 +34,12 @@ func (productRepository *ProductRepository) GetAllProducts() []domain.Product {
 	var store string
 
 	for productRows.Next() {
-		productRows.Scan(&id, &name, &price, &discount, &store)
+		err := productRows.Scan(&id, &name, &price, &discount, &store)
+		if err != nil {
+			log.Error("Error while getting all products %v", err)
+			return []domain.Product{}
+		}
 		products = append(products, domain.Product{Id: id, Name: name, Price: price, Discount: discount, Store: store})
-
 	}
 	return products
 }
