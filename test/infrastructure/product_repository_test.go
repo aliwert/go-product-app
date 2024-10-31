@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/stretchr/testify/assert"
 	"go-product-app/common/postgressql"
+	"go-product-app/domain"
 	"go-product-app/repository"
 	"os"
 	"testing"
@@ -45,8 +47,41 @@ func clear(ctx context.Context, dbPool *pgxpool.Pool) {
 
 func TestGetAllProducts(t *testing.T) {
 	setup(ctx, dbPool)
-
-	fmt.Println("Testing all products")
+	expectedProduct := []domain.Product{
+		{
+			Id:       1,
+			Name:     "AirFryer",
+			Price:    3000.0,
+			Discount: 22.0,
+			Store:    "ABC TECH",
+		},
+		{
+			Id:       2,
+			Name:     "Iron",
+			Price:    1500.0,
+			Discount: 10.0,
+			Store:    "ABC TECH",
+		},
+		{
+			Id:       3,
+			Name:     "Washing Machine",
+			Price:    10000.0,
+			Discount: 15.0,
+			Store:    "ABC TECH",
+		},
+		{
+			Id:       4,
+			Name:     "Floor Lamp",
+			Price:    2000.0,
+			Discount: 0.0,
+			Store:    "QWE DECORATION",
+		},
+	}
+	t.Run("Get All Products", func(t *testing.T) {
+		actualProducts := productRepository.GetAllProducts()
+		assert.Equal(t, 4, len(actualProducts))
+		assert.Equal(t, expectedProduct, actualProducts)
+	})
 
 	clear(ctx, dbPool)
 }
