@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/labstack/gommon/log"
 	"go-product-app/domain"
+	"go-product-app/repository/cmn"
 )
 
 type IProductRepository interface {
@@ -15,6 +16,8 @@ type IProductRepository interface {
 	GetAllProductsByStore(storeName string) []domain.Product
 	AddProduct(product domain.Product) error
 	GetProductById(productId int64) (domain.Product, error)
+	DeleteProductById(productId int64) error
+	UpdateProduct(productId int64, newPrice float32) error
 }
 
 type ProductRepository struct {
@@ -74,11 +77,41 @@ func (productRepository *ProductRepository) GetProductById(productId int64) (dom
 	var discount float32
 	var store string
 	scanErr := queryRow.Scan(&id, &name, &price, &discount, &store)
+	if scanErr != nil && scanErr.Error() == cmn.NOT_FOUND {
+		return domain.Product{}, errors.New(fmt.Sprintf("Product with id %v not found", productId))
+	}
 	if scanErr != nil {
 		return domain.Product{}, errors.New(fmt.Sprintf("Error while getting product with id %d", productId))
 	}
 	return domain.Product{Id: id, Name: name, Price: price, Discount: discount, Store: store}, nil
 
+}
+
+func (productRepository *ProductRepository) DeleteProductById(productId int64) error {
+	ctx := context.Background()
+	_, err := productRepository.GetProductById(productId)
+	if err != nil {
+		return errors.New("Product not found")
+	}
+	deleteSql := `DELETE FROM products WHERE id = $1`
+	_, err = productRepository.dbPool.Exec(ctx, deleteSql, productId)
+
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error while deleting product with id %d", productId))
+	}
+	log.Info("Product deleted")
+	return nil
+}
+
+func (productRepository *ProductRepository) UpdateProduct(productId int64, newPrice float32) error {
+	ctx := context.Background()
+	updateSql := `UPDATE products SET PRICE = $1 WHERE id = $2`
+	_, err := productRepository.dbPool.Exec(ctx, updateSql, newPrice, productId)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error while updating product with id %d", productId))
+	}
+	log.Info("Product updated")
+	return nil
 }
 
 func getProducts(productRows pgx.Rows) []domain.Product {
